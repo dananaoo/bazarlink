@@ -27,7 +27,7 @@ ENV/
 .venv
 .venv/
 venv/
-
+.cursorrules
 # IDE
 .vscode/
 .idea/
