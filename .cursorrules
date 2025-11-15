@@ -1,0 +1,243 @@
+# Supplier Consumer Platform (SCP) - Cursor Rules
+
+## Project Overview
+
+The Supplier Consumer Platform (SCP) is a B2B mobile and web-based application that facilitates direct collaboration between food suppliers and institutional consumers (restaurants/hotels). This is NOT a public marketplace; instead, it supports direct, pre-approved relationships between suppliers and their linked consumers.
+
+### Core Concept
+- Suppliers create and manage catalogs, assign managers and sales representatives, and handle consumer relationships
+- Consumers can only view and order goods after a link request is approved by a supplier
+- Managers oversee catalog integrity and escalations inside supplier companies
+- Platform Admins (optional, future phase) may manage verification, moderation, and analytics
+
+### Target Market
+- Initial rollout: Kazakhstan market
+- Languages: Kazakh, Russian, English
+- Accessibility: WCAG 2.1 AA compliance required
+
+## Technology Stack
+
+### Backend
+- **Database**: PostgreSQL
+- **Framework Options**: 
+  - Python ( FastAPI) - **Preferred**
+
+- **Deployment**: Docker containers, cloud-deployed
+- **API**: REST API architecture
+
+### Frontend (Web)
+- **Framework Options**: Svelte
+- **Styling**: Tailwind CSS
+- **Target Users**: Suppliers (Owners, Managers), Platform Admins (optional)
+
+### Mobile
+- **Framework**: Flutter 
+- **Platforms**: iOS and Android
+- **Target Users**: Consumers, Supplier Sales Representatives
+
+### Development Tools
+- **Design**: Figma for UI/UX design (highly advised)
+- **Containerization**: Docker (advised)
+
+
+## Architecture Guidelines
+
+### System Components
+1. **Mobile Application**: For consumers and supplier Sales Representatives
+2. **Web Application**: For suppliers and optional platform admins
+3. **Backend Services**: REST API with PostgreSQL database
+4. **Local Development**: Platform can be hosted on localhost for development, testing, and demo purposes
+
+### Key Architectural Principles
+- RESTful API design
+- Role-based access control (RBAC)
+- Link-based access control (consumers must be approved/linked)
+- Real-time inventory updates
+- Secure authentication and authorization
+- Multi-language support (Kazakh, Russian, English)
+
+## User Roles & Permissions
+
+### Consumer
+- Can request links to suppliers
+- Can view catalog and place orders once approved
+- Can track orders and reorder
+- Can log complaints tied to order details
+- Can manage links: pending, accepted, removed, blocked
+
+### Supplier Owner
+- Full control over supplier account
+- Can create/remove Managers and Sales Representatives
+- Can delete/deactivate supplier account
+- All Manager capabilities
+
+### Supplier Manager
+- Handles catalog, inventory, and escalations
+- Can manage orders (accept/reject)
+- Can handle escalated complaints
+- Cannot create/remove Managers or delete account
+
+### Sales Representative
+- Handles consumer communication
+- Manages first-line complaints
+- Escalates issues to Manager/Owner
+- Can view orders and catalog
+
+### Platform Admin (OPTIONAL - Future Phase)
+- Manage supplier onboarding and verification (KYB)
+- Moderate product categories
+- Monitor disputes
+- Access platform-wide analytics dashboards
+
+## Core Features (MVP Scope)
+
+### Must-Have Features
+1. **Supplier Onboarding**: KYB (Know Your Business) verification
+2. **Link-Based Access**: Consumers must be approved/linked before accessing catalogs
+3. **Catalog Management**: 
+   - Create/edit products with units, pricing, discounts, stock levels
+   - Configure delivery/pickup options, lead times
+   - Real-time stock updates
+4. **Order Management**:
+   - Order creation, acceptance/rejection, tracking
+   - Bulk order handling
+5. **Communication**:
+   - Integrated chat post link approval
+   - Features: receipts, attachments, product links, canned replies
+   - Escalation: Sales → Manager
+6. **Complaint Handling**:
+   - Sales (first-line) → Manager (escalation) → Owner (oversight)
+   - Tied to order details
+7. **Incident Logging & Escalation**:
+   - Status tracking (open, in progress, resolved)
+   - Exportable logs
+8. **Data Retention**: All records retained for compliance, read-only archival after X years
+
+### Optional Features (Excluded from MVP)
+- Platform Admin functionality
+- Analytics dashboards
+- Subscription models
+- Payments integration
+- Logistics coordination
+- Ratings & reviews
+
+## Development Guidelines
+
+### Code Style
+- Follow language-specific style guides (PEP 8 for Python, ESLint for JavaScript/TypeScript, etc.)
+- Use meaningful variable and function names
+- Write self-documenting code with clear comments where needed
+- Maintain consistent formatting across the codebase
+
+### API Design
+- Use RESTful conventions
+- Implement proper HTTP status codes
+- Include comprehensive error handling
+- Version APIs appropriately
+- Document all endpoints
+
+### Database Design
+- Use PostgreSQL-specific features when beneficial
+- Implement proper indexing for performance
+- Use migrations for schema changes
+- Maintain referential integrity
+- Plan for data archival strategy
+
+### Security
+- Implement proper authentication (JWT tokens recommended)
+- Use role-based access control (RBAC)
+- Validate all user inputs
+- Sanitize data to prevent SQL injection
+- Use HTTPS for all communications
+- Implement rate limiting
+
+### Testing
+- Write unit tests for critical business logic
+- Implement integration tests for API endpoints
+- Test role-based permissions thoroughly
+- Test multi-language support
+- Test accessibility compliance (WCAG 2.1 AA)
+
+### Error Handling
+- Provide user-friendly error messages
+- Log errors appropriately for debugging
+- Handle edge cases gracefully
+- Implement proper exception handling
+
+### Performance
+- Optimize database queries
+- Implement caching where appropriate
+- Use pagination for large datasets
+- Optimize mobile app performance
+- Monitor and meet performance SLAs (TBD)
+
+## Key Workflows
+
+### Consumer Order Flow
+1. Consumer requests link to supplier
+2. Supplier approves link
+3. Consumer browses catalog
+4. Consumer adds items to cart
+5. Consumer submits order
+6. Supplier receives notification
+7. Supplier accepts/rejects order
+8. Order tracking and fulfillment
+
+### Complaint Escalation Flow
+1. Consumer logs complaint tied to order
+2. Sales Representative receives complaint
+3. Sales attempts resolution
+4. If unresolved, escalates to Manager
+5. Manager reviews and resolves
+6. Owner can oversee if needed
+
+### Catalog Management Flow
+1. Manager/Owner logs into web app
+2. Edits product details (pricing, stock, availability)
+3. Saves changes
+4. Updated catalog visible to linked consumers
+
+## Data Models (Key Entities)
+
+- **Supplier**: Company information, verification status, settings
+- **Consumer**: Restaurant/hotel information, link status
+- **User**: Owner, Manager, Sales Representative, Consumer user accounts
+- **Product**: Catalog items with pricing, stock, units, discounts
+- **Order**: Consumer orders with items, status, timestamps
+- **Link**: Relationship between supplier and consumer (pending, accepted, removed, blocked)
+- **Complaint**: Issues tied to orders with escalation path
+- **Incident**: Logged incidents with status tracking
+- **Message**: Chat messages with attachments, receipts, product links
+
+## Internationalization
+
+- Support for Kazakh, Russian, and English
+- All user-facing text must be translatable
+- Date/time formatting per locale
+- Currency formatting (Kazakhstani Tenge - KZT)
+- Right-to-left support if needed for future expansion
+
+
+
+
+
+
+## Development Priorities
+
+1. **Phase 1 (MVP)**: Core supplier-consumer linking and ordering
+2. **Phase 2**: Enhanced features, analytics (optional)
+3. **Phase 3**: Platform Admin features (optional)
+4. **Future**: Payments, logistics, ratings/reviews
+
+## Notes for AI Assistant
+
+- Always consider role-based permissions when implementing features
+- Remember this is B2B, not a public marketplace - access is controlled
+- Link approval is required before consumers can access catalogs
+- Escalation paths are important (Sales → Manager → Owner)
+- Multi-language support is critical for Kazakhstan market
+- Accessibility (WCAG 2.1 AA) must be maintained
+- Use Docker for consistent development environments
+- Follow the technology stack preferences but allow flexibility
+- MVP scope is clearly defined - optional features should be marked as such
+
