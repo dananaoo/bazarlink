@@ -54,3 +54,34 @@ Thumbs.db
 # Alembic
 alembic/versions/*.pyc
 
+# Frontend - Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Frontend - Build outputs
+dist/
+build/
+.svelte-kit/
+.vite/
+.output/
+
+# Frontend - Testing
+coverage/
+*.lcov
+.nyc_output/
+
+# Frontend - TypeScript
+*.tsbuildinfo
+
+# Frontend - Local config files
+*.local
+.cache/
+
+# Frontend - Package manager locks (uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
