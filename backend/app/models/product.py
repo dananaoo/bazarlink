@@ -30,7 +30,7 @@ class Product(Base):
     name = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=True)
     sku = Column(String, nullable=True, index=True)  # Stock Keeping Unit
-    category = Column(String, nullable=True, index=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True, index=True)
     
     # Pricing
     price = Column(Numeric(10, 2), nullable=False)
@@ -57,5 +57,6 @@ class Product(Base):
     
     # Relationships
     supplier = relationship("Supplier", back_populates="products")
+    category = relationship("Category", back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
 

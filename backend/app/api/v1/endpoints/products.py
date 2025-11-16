@@ -34,6 +34,28 @@ async def create_product(
             detail="Supplier not found"
         )
     
+    # Verify user has access to this supplier
+    if current_user.supplier_id != product_in.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only create products for your own supplier"
+        )
+    
+    # If category_id is provided, verify it belongs to the same supplier
+    if product_in.category_id:
+        from app.models.category import Category
+        category = db.query(Category).filter(Category.id == product_in.category_id).first()
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found"
+            )
+        if category.supplier_id != product_in.supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Category does not belong to this supplier"
+            )
+    
     db_product = Product(**product_in.model_dump())
     db.add(db_product)
     db.commit()
@@ -163,6 +185,29 @@ async def update_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
+    
+    # Verify user has access to this supplier
+    if current_user.supplier_id != product.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only update products for your own supplier"
+        )
+    
+    # If category_id is being updated, verify it belongs to the same supplier
+    if product_in.category_id is not None and product_in.category_id != product.category_id:
+        from app.models.category import Category
+        if product_in.category_id:  # If not None (could be None to remove category)
+            category = db.query(Category).filter(Category.id == product_in.category_id).first()
+            if not category:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Category not found"
+                )
+            if category.supplier_id != product.supplier_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Category does not belong to this supplier"
+                )
     
     update_data = product_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():

@@ -13,7 +13,7 @@ class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
     sku: Optional[str] = None
-    category: Optional[str] = None
+    category_id: Optional[int] = None
     price: Decimal
     discount_price: Optional[Decimal] = None
     currency: str = "KZT"
@@ -35,7 +35,7 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     sku: Optional[str] = None
-    category: Optional[str] = None
+    category_id: Optional[int] = None
     price: Optional[Decimal] = None
     discount_price: Optional[Decimal] = None
     stock_quantity: Optional[Decimal] = None

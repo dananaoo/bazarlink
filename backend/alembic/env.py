@@ -19,6 +19,7 @@ from app.models import (
     User,
     Supplier,
     Consumer,
+    Category,
     Product,
     Link,
     Order,

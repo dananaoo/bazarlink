@@ -2,6 +2,7 @@
 from app.models.user import User, UserRole
 from app.models.supplier import Supplier, VerificationStatus
 from app.models.consumer import Consumer
+from app.models.category import Category
 from app.models.product import Product, ProductUnit
 from app.models.link import Link, LinkStatus
 from app.models.order import Order, OrderItem, OrderStatus
@@ -15,6 +16,7 @@ __all__ = [
     "Supplier",
     "VerificationStatus",
     "Consumer",
+    "Category",
     "Product",
     "ProductUnit",
     "Link",

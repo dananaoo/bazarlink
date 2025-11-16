@@ -46,6 +46,7 @@ class Supplier(Base):
     # Relationships
     staff = relationship("User", back_populates="supplier")
     products = relationship("Product", back_populates="supplier", cascade="all, delete-orphan")
+    categories = relationship("Category", back_populates="supplier", cascade="all, delete-orphan")
     links = relationship("Link", back_populates="supplier", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="supplier")
 
