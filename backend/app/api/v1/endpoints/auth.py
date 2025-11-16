@@ -21,6 +21,11 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """User login endpoint"""
+    import logging
+    logger = logging.getLogger(__name__)
+    print(f"\n[LOGIN] Login attempt for email: {form_data.username}")
+    logger.info(f"Login attempt for email: {form_data.username}")
+    
     try:
         user = db.query(User).filter(User.email == form_data.username).first()
         
@@ -53,6 +58,8 @@ async def login(
             expires_delta=access_token_expires
         )
         
+        print(f"[LOGIN] Login successful for user: {user.email} (ID: {user.id})")
+        logger.info(f"Login successful for user: {user.email} (ID: {user.id})")
         return {"access_token": access_token, "token_type": "bearer"}
     except HTTPException:
         raise
@@ -79,69 +86,91 @@ async def register_owner(
     db: Session = Depends(get_db)
 ):
     """Register a new owner with supplier (Public endpoint)"""
-    from app.schemas.auth import OwnerRegistration
     from app.models.supplier import Supplier
     from app.models.user import UserRole
     from app.core.security import get_password_hash
+    import logging
     
-    # Parse registration data
-    if isinstance(registration_data, dict):
-        # Handle dict input
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info("Owner registration attempt started")
+        
+        # Parse registration data
         user_data = registration_data
         supplier_data = user_data.get("supplier", {})
-    else:
-        # Handle Pydantic model
-        user_data = registration_data.model_dump()
-        supplier_data = user_data.get("supplier", {})
-    
-    # Validate required fields
-    if not user_data.get("email") or not user_data.get("password") or not user_data.get("full_name"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing required fields: email, password, full_name"
+        
+        logger.debug(f"Registration data received: email={user_data.get('email')}, supplier_name={supplier_data.get('company_name')}")
+        
+        # Validate required fields
+        if not user_data.get("email") or not user_data.get("password") or not user_data.get("full_name"):
+            logger.warning("Registration failed: Missing required fields")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing required fields: email, password, full_name"
+            )
+        
+        if not supplier_data or not supplier_data.get("company_name"):
+            logger.warning("Registration failed: Missing supplier information")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing supplier information (company_name is required)"
+            )
+        
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == user_data["email"]).first()
+        if existing_user:
+            logger.warning(f"Registration failed: User already exists - {user_data['email']}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this email already exists"
+            )
+        
+        # Create supplier first
+        supplier_email = supplier_data.get("email") or user_data["email"]
+        existing_supplier = db.query(Supplier).filter(Supplier.email == supplier_email).first()
+        if existing_supplier:
+            logger.warning(f"Registration failed: Supplier already exists - {supplier_email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supplier with this email already exists"
+            )
+        
+        # Ensure supplier has email
+        if not supplier_data.get("email"):
+            supplier_data["email"] = user_data["email"]
+        
+        logger.info(f"Creating supplier: {supplier_data.get('company_name')}")
+        db_supplier = Supplier(**supplier_data)
+        db.add(db_supplier)
+        db.flush()  # Get supplier ID
+        
+        logger.info(f"Creating owner user: {user_data['email']}, supplier_id={db_supplier.id}")
+        # Create owner user
+        hashed_password = get_password_hash(user_data["password"])
+        db_user = User(
+            email=user_data["email"],
+            hashed_password=hashed_password,
+            full_name=user_data["full_name"],
+            phone=user_data.get("phone"),
+            role=UserRole.OWNER,
+            language=user_data.get("language", "en"),
+            supplier_id=db_supplier.id
         )
-    
-    if not supplier_data:
+        
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        logger.info(f"Owner registration successful: user_id={db_user.id}, email={db_user.email}")
+        return db_user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during owner registration: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing supplier information"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
         )
-    
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.email == user_data["email"]).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists"
-        )
-    
-    # Create supplier first
-    existing_supplier = db.query(Supplier).filter(Supplier.email == supplier_data.get("email")).first()
-    if existing_supplier:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Supplier with this email already exists"
-        )
-    
-    db_supplier = Supplier(**supplier_data)
-    db.add(db_supplier)
-    db.flush()  # Get supplier ID
-    
-    # Create owner user
-    hashed_password = get_password_hash(user_data["password"])
-    db_user = User(
-        email=user_data["email"],
-        hashed_password=hashed_password,
-        full_name=user_data["full_name"],
-        phone=user_data.get("phone"),
-        role=UserRole.OWNER,
-        language=user_data.get("language", "en"),
-        supplier_id=db_supplier.id
-    )
-    
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    return db_user
 
