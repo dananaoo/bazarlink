@@ -28,6 +28,10 @@ backend/
 │   ├── models/           # SQLAlchemy models
 │   ├── schemas/          # Pydantic schemas
 │   └── main.py           # FastAPI application
+├── alembic/              # Database migrations
+│   ├── versions/         # Migration files
+│   └── env.py            # Alembic environment
+├── alembic.ini           # Alembic configuration
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
@@ -133,6 +137,57 @@ docker-compose up -d
 ```bash
 docker-compose down
 ```
+
+## Database Migrations
+
+This project uses [Alembic](https://alembic.sqlalchemy.org/) for database migrations.
+
+### Quick Commands
+
+**Check current migration status**:
+```bash
+make migrate-current
+# or
+alembic current
+```
+
+**View migration history**:
+```bash
+make migrate-history
+# or
+alembic history
+```
+
+**Create a new migration** (after modifying models):
+```bash
+make migrate-create MESSAGE="add new field to user table"
+# or
+alembic revision --autogenerate -m "add new field to user table"
+```
+
+**Apply pending migrations**:
+```bash
+make migrate-upgrade
+# or
+alembic upgrade head
+```
+
+**Rollback one migration**:
+```bash
+make migrate-downgrade REVISION="-1"
+# or
+alembic downgrade -1
+```
+
+### Workflow
+
+1. **Modify models** in `app/models/`
+2. **Create migration**: `alembic revision --autogenerate -m "description"`
+3. **Review** the generated migration file in `alembic/versions/`
+4. **Apply migration**: `alembic upgrade head`
+5. **Test** your changes
+
+For detailed information, see [ALEMBIC_GUIDE.md](ALEMBIC_GUIDE.md).
 
 ## API Endpoints
 

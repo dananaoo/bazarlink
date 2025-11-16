@@ -1,4 +1,4 @@
-.PHONY: help db-up db-down db-logs db-shell db-reset backend-up backend-down up down logs
+.PHONY: help db-up db-down db-logs db-shell db-reset backend-up backend-down up down logs migrate migrate-create migrate-upgrade migrate-downgrade migrate-current migrate-history
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -33,4 +33,31 @@ down: ## Stop everything
 
 logs: ## View all logs
 	docker-compose logs -f
+
+# Alembic migration commands
+migrate: ## Show current migration status
+	alembic current
+
+migrate-create: ## Create a new migration (usage: make migrate-create MESSAGE="description")
+	@if [ -z "$(MESSAGE)" ]; then \
+		echo "Error: MESSAGE is required. Usage: make migrate-create MESSAGE='your message'"; \
+		exit 1; \
+	fi
+	alembic revision --autogenerate -m "$(MESSAGE)"
+
+migrate-upgrade: ## Apply all pending migrations
+	alembic upgrade head
+
+migrate-downgrade: ## Downgrade one migration (usage: make migrate-downgrade REVISION="-1")
+	@if [ -z "$(REVISION)" ]; then \
+		echo "Error: REVISION is required. Usage: make migrate-downgrade REVISION='-1' or REVISION='revision_id'"; \
+		exit 1; \
+	fi
+	alembic downgrade $(REVISION)
+
+migrate-current: ## Show current migration version
+	alembic current
+
+migrate-history: ## Show migration history
+	alembic history
 
