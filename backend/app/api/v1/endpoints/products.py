@@ -51,7 +51,43 @@ async def get_products(
     current_user = Depends(get_current_user)
 ):
     """Get list of products"""
+    from app.models.link import Link, LinkStatus
+    
     query = db.query(Product)
+    
+    # Consumers can only see products from suppliers they have ACCEPTED links with
+    if current_user.role == UserRole.CONSUMER:
+        if not current_user.consumer_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Consumer profile not found"
+            )
+        
+        # Get all accepted links for this consumer
+        accepted_links = db.query(Link).filter(
+            Link.consumer_id == current_user.consumer_id,
+            Link.status == LinkStatus.ACCEPTED
+        ).all()
+        
+        accepted_supplier_ids = [link.supplier_id for link in accepted_links]
+        
+        if not accepted_supplier_ids:
+            # Consumer has no accepted links, return empty
+            return []
+        
+        # Filter products by accepted suppliers
+        query = query.filter(Product.supplier_id.in_(accepted_supplier_ids))
+        
+        # If supplier_id specified, verify it's in accepted list
+        if supplier_id and supplier_id not in accepted_supplier_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have an accepted link with this supplier"
+            )
+    elif current_user.role in [UserRole.OWNER, UserRole.MANAGER, UserRole.SALES_REPRESENTATIVE]:
+        # Supplier staff can see all products for their supplier
+        if current_user.supplier_id:
+            query = query.filter(Product.supplier_id == current_user.supplier_id)
     
     if supplier_id:
         query = query.filter(Product.supplier_id == supplier_id)
@@ -67,12 +103,43 @@ async def get_product(
     current_user = Depends(get_current_user)
 ):
     """Get product by ID"""
+    from app.models.link import Link, LinkStatus
+    
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
+    
+    # Consumers can only see products from suppliers they have ACCEPTED links with
+    if current_user.role == UserRole.CONSUMER:
+        if not current_user.consumer_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Consumer profile not found"
+            )
+        
+        # Check if consumer has accepted link with this supplier
+        link = db.query(Link).filter(
+            Link.consumer_id == current_user.consumer_id,
+            Link.supplier_id == product.supplier_id,
+            Link.status == LinkStatus.ACCEPTED
+        ).first()
+        
+        if not link:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have an accepted link with this supplier"
+            )
+    elif current_user.role in [UserRole.OWNER, UserRole.MANAGER, UserRole.SALES_REPRESENTATIVE]:
+        # Supplier staff can only see products for their supplier
+        if current_user.supplier_id and product.supplier_id != current_user.supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+    
     return product
 
 

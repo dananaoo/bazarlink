@@ -14,6 +14,9 @@ class UserRole(str, enum.Enum):
     OWNER = "owner"
     MANAGER = "manager"
     SALES_REPRESENTATIVE = "sales_representative"
+    
+    def __str__(self):
+        return self.value
 
 
 class User(Base):
@@ -25,7 +28,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     phone = Column(String, nullable=True)
-    role = Column(Enum(UserRole), nullable=False, index=True)
+    role = Column(Enum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     is_active = Column(Boolean, default=True)
     language = Column(String, default="en")  # kk, ru, en
     

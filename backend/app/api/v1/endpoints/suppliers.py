@@ -15,9 +15,17 @@ router = APIRouter()
 @router.post("/", response_model=SupplierSchema, status_code=status.HTTP_201_CREATED)
 async def create_supplier(
     supplier_in: SupplierCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
-    """Create a new supplier"""
+    """Create a new supplier (Owner only)"""
+    # Only owners can create suppliers
+    if current_user.role != UserRole.OWNER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only owners can create suppliers"
+        )
+    
     # Check if supplier already exists
     existing_supplier = db.query(Supplier).filter(Supplier.email == supplier_in.email).first()
     if existing_supplier:

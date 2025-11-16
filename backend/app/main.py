@@ -22,6 +22,9 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    swagger_ui_init_oauth={
+        "usePkceWithAuthorizationCodeGrant": False,
+    },
 )
 
 # CORS middleware

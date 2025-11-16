@@ -18,13 +18,27 @@ async def create_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.OWNER))
 ):
-    """Create a new user (Owner only)"""
+    """Create a new user (Owner only) - can only create Managers and Sales Reps"""
+    # Owner can only create Managers and Sales Representatives
+    if user_in.role not in [UserRole.MANAGER, UserRole.SALES_REPRESENTATIVE]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Owners can only create Managers and Sales Representatives"
+        )
+    
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_in.email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email already exists"
+        )
+    
+    # Verify owner has a supplier
+    if not current_user.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Owner must be associated with a supplier"
         )
     
     # Create new user
@@ -36,7 +50,7 @@ async def create_user(
         phone=user_in.phone,
         role=user_in.role,
         language=user_in.language,
-        supplier_id=current_user.supplier_id if current_user.supplier_id else None
+        supplier_id=current_user.supplier_id
     )
     
     db.add(db_user)

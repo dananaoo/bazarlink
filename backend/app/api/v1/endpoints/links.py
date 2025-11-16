@@ -101,12 +101,19 @@ async def update_link(
             detail="Link not found"
         )
     
-    # Only suppliers can approve/reject links
+    # Only supplier staff (Owner, Manager, Sales Rep) can approve/reject links
     if link_in.status and link_in.status != link.status:
-        if current_user.role not in [UserRole.OWNER, UserRole.MANAGER]:
+        if current_user.role not in [UserRole.OWNER, UserRole.MANAGER, UserRole.SALES_REPRESENTATIVE]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only suppliers can approve/reject links"
+                detail="Only supplier staff can approve/reject links"
+            )
+        
+        # Verify user belongs to the supplier
+        if current_user.supplier_id != link.supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only approve/reject links for your own supplier"
             )
         
         link.status = link_in.status

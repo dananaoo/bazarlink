@@ -177,6 +177,54 @@ docker-compose down
 - `GET /api/v1/orders/{id}` - Get order by ID
 - `PUT /api/v1/orders/{id}` - Update order (accept/reject)
 
+## Testing Endpoints with Authorization
+
+Most endpoints require authentication. Here's how to test them in FastAPI docs:
+
+### Quick Start
+
+1. **Get a token** using the login endpoint:
+   - Go to `POST /api/v1/auth/login` in the docs
+   - Click "Try it out"
+   - Enter:
+     - `username`: `admin@test.com` (your email)
+     - `password`: `admin123`
+   - Click "Execute"
+   - Copy the `access_token` from the response
+
+2. **Authorize in Swagger UI**:
+   - Click the **"Authorize"** button (🔒 lock icon, top right)
+   - In the OAuth2 modal, you'll see these fields:
+     - **username**: Enter `admin@test.com` (your email)
+     - **password**: Enter `admin123`
+     - **client_id**: Leave empty (not needed for password flow)
+     - **client_secret**: Leave empty (not needed for password flow)
+   - Click "Authorize"
+   - Close the modal
+
+3. **Test protected endpoints**:
+   - All endpoints with a 🔒 lock icon now work automatically
+   - Your token is included in requests automatically
+
+### Alternative: Direct Token Entry
+
+If you already have a token:
+
+1. Click "Authorize" button
+2. Look for the "Value" or token input field
+3. Paste: `Bearer <your_access_token>`
+4. Click "Authorize"
+
+### Test User Credentials
+
+After running database initialization (`init_db.py`), you can use:
+
+- **Email**: `admin@test.com`
+- **Password**: `admin123`
+- **Role**: `owner`
+
+See `AUTH_GUIDE.md` for detailed authentication instructions.
+
 ## User Roles
 
 - **CONSUMER**: Can request links, place orders, view catalog
