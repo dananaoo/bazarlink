@@ -50,6 +50,11 @@ class User(UserInDB):
     pass
 
 
+class OwnershipTransferRequest(BaseModel):
+    """Schema for ownership transfer request"""
+    new_owner_user_id: int
+
+
 class UserLogin(BaseModel):
     """Schema for user login"""
     email: EmailStr
