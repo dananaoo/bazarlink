@@ -51,6 +51,9 @@ class Product(Base):
     pickup_available = Column(Boolean, default=True)
     lead_time_days = Column(Integer, default=1)  # Days until delivery
     
+    # Image
+    image_url = Column(String, nullable=True)  # URL to product image
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

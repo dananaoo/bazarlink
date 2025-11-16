@@ -109,9 +109,9 @@ async def get_categories(
     if supplier_id:
         query = query.filter(Category.supplier_id == supplier_id)
     
-    # Filter only active categories and order by display_order, then name
+    # Filter only active categories and order by name
     query = query.filter(Category.is_active == True)
-    categories = query.order_by(Category.display_order, Category.name).all()
+    categories = query.order_by(Category.name).all()
     
     return categories
 

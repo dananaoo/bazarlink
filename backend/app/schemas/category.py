@@ -9,8 +9,6 @@ from datetime import datetime
 class CategoryBase(BaseModel):
     """Base category schema"""
     name: str
-    description: Optional[str] = None
-    display_order: int = 0
 
 
 class CategoryCreate(CategoryBase):
@@ -21,8 +19,6 @@ class CategoryCreate(CategoryBase):
 class CategoryUpdate(BaseModel):
     """Schema for updating a category"""
     name: Optional[str] = None
-    description: Optional[str] = None
-    display_order: Optional[int] = None
     is_active: Optional[bool] = None
 
 

@@ -23,6 +23,7 @@ class ProductBase(BaseModel):
     delivery_available: bool = True
     pickup_available: bool = True
     lead_time_days: int = 1
+    image_url: Optional[str] = None
 
 
 class ProductCreate(ProductBase):
@@ -46,6 +47,7 @@ class ProductUpdate(BaseModel):
     delivery_available: Optional[bool] = None
     pickup_available: Optional[bool] = None
     lead_time_days: Optional[int] = None
+    image_url: Optional[str] = None
 
 
 class ProductInDB(ProductBase):

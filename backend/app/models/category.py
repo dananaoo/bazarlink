@@ -1,7 +1,7 @@
 """
 Category model for product categorization
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -16,10 +16,6 @@ class Category(Base):
     
     # Category information
     name = Column(String, nullable=False, index=True)
-    description = Column(Text, nullable=True)
-    
-    # Display order (for sorting categories)
-    display_order = Column(Integer, default=0)
     
     # Settings
     is_active = Column(Boolean, default=True)
