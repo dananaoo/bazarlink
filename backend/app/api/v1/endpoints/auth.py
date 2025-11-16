@@ -10,6 +10,7 @@ from app.core.security import verify_password, create_access_token
 from app.core.dependencies import get_db
 from app.models.user import User
 from app.schemas.user import Token, User as UserSchema
+from app.schemas.auth import OwnerRegistration, ConsumerRegistration
 from app.core.dependencies import get_current_user
 
 router = APIRouter()
@@ -82,7 +83,7 @@ async def get_current_user_info(
 
 @router.post("/register-owner", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
 async def register_owner(
-    registration_data: dict,
+    registration_data: OwnerRegistration,
     db: Session = Depends(get_db)
 ):
     """Register a new owner with supplier (Public endpoint)"""
@@ -97,25 +98,10 @@ async def register_owner(
         logger.info("Owner registration attempt started")
         
         # Parse registration data
-        user_data = registration_data
-        supplier_data = user_data.get("supplier", {})
+        user_data = registration_data.model_dump(exclude={"supplier"})
+        supplier_data = registration_data.supplier.model_dump()
         
         logger.debug(f"Registration data received: email={user_data.get('email')}, supplier_name={supplier_data.get('company_name')}")
-        
-        # Validate required fields
-        if not user_data.get("email") or not user_data.get("password") or not user_data.get("full_name"):
-            logger.warning("Registration failed: Missing required fields")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing required fields: email, password, full_name"
-            )
-        
-        if not supplier_data or not supplier_data.get("company_name"):
-            logger.warning("Registration failed: Missing supplier information")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing supplier information (company_name is required)"
-            )
         
         # Check if user already exists
         existing_user = db.query(User).filter(User.email == user_data["email"]).first()
@@ -169,6 +155,84 @@ async def register_owner(
         raise
     except Exception as e:
         logger.error(f"Unexpected error during owner registration: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
+
+
+@router.post("/register-consumer", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
+async def register_consumer(
+    registration_data: ConsumerRegistration,
+    db: Session = Depends(get_db)
+):
+    """Register a new consumer (restaurant/hotel) with user account (Public endpoint)"""
+    from app.models.consumer import Consumer
+    from app.models.user import UserRole
+    from app.core.security import get_password_hash
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info("Consumer registration attempt started")
+        
+        # Parse registration data
+        user_data = registration_data.model_dump(exclude={"consumer"})
+        consumer_data = registration_data.consumer.model_dump()
+        
+        logger.debug(f"Registration data received: email={user_data.get('email')}, business_name={consumer_data.get('business_name')}")
+        
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == user_data["email"]).first()
+        if existing_user:
+            logger.warning(f"Registration failed: User already exists - {user_data['email']}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this email already exists"
+            )
+        
+        # Check if consumer already exists
+        existing_consumer = db.query(Consumer).filter(Consumer.email == user_data["email"]).first()
+        if existing_consumer:
+            logger.warning(f"Registration failed: Consumer already exists - {user_data['email']}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Consumer with this email already exists"
+            )
+        
+        # Ensure consumer email matches user email
+        consumer_data["email"] = user_data["email"]
+        
+        logger.info(f"Creating consumer: {consumer_data.get('business_name')}")
+        db_consumer = Consumer(**consumer_data)
+        db.add(db_consumer)
+        db.flush()  # Get consumer ID
+        
+        logger.info(f"Creating consumer user: {user_data['email']}, consumer_id={db_consumer.id}")
+        # Create consumer user
+        hashed_password = get_password_hash(user_data["password"])
+        db_user = User(
+            email=user_data["email"],
+            hashed_password=hashed_password,
+            full_name=user_data["full_name"],
+            phone=user_data.get("phone"),
+            role=UserRole.CONSUMER,
+            language=user_data.get("language", "en"),
+            consumer_id=db_consumer.id
+        )
+        
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        logger.info(f"Consumer registration successful: user_id={db_user.id}, email={db_user.email}")
+        return db_user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during consumer registration: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration failed: {str(e)}"
