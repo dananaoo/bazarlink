@@ -22,6 +22,7 @@ class LinkCreate(LinkBase):
 class LinkUpdate(BaseModel):
     """Schema for updating a link"""
     status: Optional[LinkStatus] = None
+    assigned_sales_rep_id: Optional[int] = None
 
 
 class LinkInDB(LinkBase):
@@ -29,6 +30,7 @@ class LinkInDB(LinkBase):
     id: int
     status: LinkStatus
     requested_by_consumer: bool
+    assigned_sales_rep_id: Optional[int] = None
     requested_at: datetime
     responded_at: Optional[datetime] = None
     created_at: datetime

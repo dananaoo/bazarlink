@@ -15,6 +15,7 @@ class Message(Base):
     link_id = Column(Integer, ForeignKey("links.id"), nullable=False, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    sales_rep_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Which sales rep sent this (if from supplier side)
     
     # Message content
     content = Column(Text, nullable=False)
@@ -45,6 +46,7 @@ class Message(Base):
     link = relationship("Link")
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
+    sales_rep = relationship("User", foreign_keys=[sales_rep_id])
     product = relationship("Product")
     order = relationship("Order")
 

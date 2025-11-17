@@ -64,10 +64,16 @@ async def create_message(
             detail="Only consumers and sales representatives can send messages"
         )
     
+    # Determine sales_rep_id (only for sales rep messages)
+    sales_rep_id = None
+    if current_user.role == UserRole.SALES_REPRESENTATIVE:
+        sales_rep_id = current_user.id
+    
     db_message = Message(
         link_id=message_in.link_id,
         sender_id=current_user.id,
         receiver_id=receiver_id,
+        sales_rep_id=sales_rep_id,
         content=message_in.content,
         message_type=message_in.message_type,
         attachment_url=message_in.attachment_url,
