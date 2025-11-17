@@ -128,3 +128,178 @@ async def update_link(
     
     return link
 
+
+@router.post("/{link_id}/assign", response_model=LinkSchema)
+async def assign_chat(
+    link_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Assign chat to current sales representative (Sales Rep only)"""
+    if current_user.role != UserRole.SALES_REPRESENTATIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only sales representatives can assign chats"
+        )
+    
+    link = db.query(Link).filter(Link.id == link_id).first()
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Link not found"
+        )
+    
+    # Verify link belongs to sales rep's supplier
+    if link.supplier_id != current_user.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only assign chats from your own supplier"
+        )
+    
+    # Verify link is accepted
+    if link.status != LinkStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only assign accepted links"
+        )
+    
+    # Assign chat to current sales rep
+    link.assigned_sales_rep_id = current_user.id
+    db.commit()
+    db.refresh(link)
+    
+    return link
+
+
+@router.post("/{link_id}/unassign", response_model=LinkSchema)
+async def unassign_chat(
+    link_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Unassign chat (Sales Rep who assigned it, or Manager/Owner)"""
+    if current_user.role not in [UserRole.SALES_REPRESENTATIVE, UserRole.MANAGER, UserRole.OWNER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions"
+        )
+    
+    link = db.query(Link).filter(Link.id == link_id).first()
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Link not found"
+        )
+    
+    # Verify link belongs to user's supplier
+    if link.supplier_id != current_user.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only unassign chats from your own supplier"
+        )
+    
+    # Sales rep can only unassign if they assigned it, or if Manager/Owner
+    if current_user.role == UserRole.SALES_REPRESENTATIVE:
+        if link.assigned_sales_rep_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only unassign chats assigned to you"
+            )
+    
+    # Unassign chat
+    link.assigned_sales_rep_id = None
+    db.commit()
+    db.refresh(link)
+    
+    return link
+
+
+@router.get("/chats/my", response_model=List[LinkSchema])
+async def get_my_chats(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get chats assigned to current sales representative"""
+    if current_user.role != UserRole.SALES_REPRESENTATIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only sales representatives can view their assigned chats"
+        )
+    
+    if not current_user.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Sales representative must be associated with a supplier"
+        )
+    
+    # Get links assigned to this sales rep
+    links = db.query(Link).filter(
+        Link.supplier_id == current_user.supplier_id,
+        Link.assigned_sales_rep_id == current_user.id,
+        Link.status == LinkStatus.ACCEPTED
+    ).offset(skip).limit(limit).all()
+    
+    return links
+
+
+@router.get("/chats/other", response_model=List[LinkSchema])
+async def get_other_chats(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get chats from same supplier that are not assigned to current sales rep"""
+    if current_user.role != UserRole.SALES_REPRESENTATIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only sales representatives can view other chats"
+        )
+    
+    if not current_user.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Sales representative must be associated with a supplier"
+        )
+    
+    # Get links from same supplier that are either unassigned or assigned to someone else
+    links = db.query(Link).filter(
+        Link.supplier_id == current_user.supplier_id,
+        Link.status == LinkStatus.ACCEPTED
+    ).filter(
+        (Link.assigned_sales_rep_id != current_user.id) | (Link.assigned_sales_rep_id.is_(None))
+    ).offset(skip).limit(limit).all()
+    
+    return links
+
+
+@router.get("/chats/consumer", response_model=List[LinkSchema])
+async def get_consumer_chats(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get all accepted chats for current consumer"""
+    if current_user.role != UserRole.CONSUMER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only consumers can view their chats"
+        )
+    
+    if not current_user.consumer_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Consumer profile not found"
+        )
+    
+    # Get all accepted links for this consumer
+    links = db.query(Link).filter(
+        Link.consumer_id == current_user.consumer_id,
+        Link.status == LinkStatus.ACCEPTED
+    ).offset(skip).limit(limit).all()
+    
+    return links
+

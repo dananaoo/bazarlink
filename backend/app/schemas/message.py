@@ -33,6 +33,7 @@ class MessageInDB(MessageBase):
     link_id: int
     sender_id: int
     receiver_id: Optional[int] = None
+    sales_rep_id: Optional[int] = None  # Which sales rep sent this (if from supplier side)
     is_read: bool
     read_at: Optional[datetime] = None
     created_at: datetime

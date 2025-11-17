@@ -4,7 +4,7 @@ Main API router for v1
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
     auth, users, suppliers, consumers, categories, products, links, orders,
-    messages, complaints, incidents
+    messages, complaints, incidents, websocket
 )
 
 api_router = APIRouter()
@@ -21,4 +21,5 @@ api_router.include_router(orders.router, prefix="/orders", tags=["orders"])
 api_router.include_router(messages.router, prefix="/messages", tags=["messages"])
 api_router.include_router(complaints.router, prefix="/complaints", tags=["complaints"])
 api_router.include_router(incidents.router, prefix="/incidents", tags=["incidents"])
+api_router.include_router(websocket.router, prefix="/ws", tags=["websocket"])
 

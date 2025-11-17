@@ -30,6 +30,9 @@ class Link(Base):
     requested_by_consumer = Column(Boolean, default=True)  # True if consumer requested, False if supplier invited
     request_message = Column(String, nullable=True)
     
+    # Chat assignment (for sales representatives)
+    assigned_sales_rep_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    
     # Timestamps
     requested_at = Column(DateTime(timezone=True), server_default=func.now())
     responded_at = Column(DateTime(timezone=True), nullable=True)
@@ -39,6 +42,7 @@ class Link(Base):
     # Relationships
     supplier = relationship("Supplier", back_populates="links")
     consumer = relationship("Consumer", back_populates="links")
+    assigned_sales_rep = relationship("User", foreign_keys=[assigned_sales_rep_id])
     
     # Ensure unique supplier-consumer pairs
     __table_args__ = (
