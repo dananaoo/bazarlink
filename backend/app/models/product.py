@@ -30,7 +30,7 @@ class Product(Base):
     name = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=True)
     sku = Column(String, nullable=True, index=True)  # Stock Keeping Unit
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True, index=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
     
     # Pricing
     price = Column(Numeric(10, 2), nullable=False)

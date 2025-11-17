@@ -13,7 +13,7 @@ class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
     sku: Optional[str] = None
-    category_id: Optional[int] = None
+    category_id: int  # Required - product must belong to a category
     price: Decimal
     discount_price: Optional[Decimal] = None
     currency: str = "KZT"
