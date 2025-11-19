@@ -23,7 +23,8 @@ logging.getLogger().setLevel(logging.INFO)
 # Create database tables (only if they don't exist)
 # This will fail if database is not available, but app will still start
 try:
-    Base.metadata.create_all(bind=engine)
+    # Base.metadata.create_all(bind=engine)
+    pass
 except Exception as e:
     print(f"Warning: Could not create database tables: {e}")
     print("Make sure PostgreSQL is running and DATABASE_URL is correct")
