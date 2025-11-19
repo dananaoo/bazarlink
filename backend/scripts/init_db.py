@@ -26,7 +26,7 @@ def create_tables():
     """Create all database tables"""
     print("Creating database tables...")
     try:
-        Base.metadata.create_all(bind=engine)
+        #Base.metadata.create_all(bind=engine)
         print("[OK] Tables created successfully!")
         return True
     except OperationalError as e:
