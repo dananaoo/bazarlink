@@ -64,6 +64,19 @@ async def create_message(
             detail="Only consumers and sales representatives can send messages"
         )
     
+    # Validate that either content or attachment_url is provided
+    if not message_in.content and not message_in.attachment_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either content or attachment_url must be provided"
+        )
+    
+    # If attachment is provided, set message_type to "attachment"
+    if message_in.attachment_url:
+        message_type = "attachment"
+    else:
+        message_type = message_in.message_type or "text"
+    
     # Determine sales_rep_id (only for sales rep messages)
     sales_rep_id = None
     if current_user.role == UserRole.SALES_REPRESENTATIVE:
@@ -74,8 +87,8 @@ async def create_message(
         sender_id=current_user.id,
         receiver_id=receiver_id,
         sales_rep_id=sales_rep_id,
-        content=message_in.content,
-        message_type=message_in.message_type,
+        content=message_in.content or "",  # Empty string if None
+        message_type=message_type,
         attachment_url=message_in.attachment_url,
         attachment_type=message_in.attachment_type,
         product_id=message_in.product_id,

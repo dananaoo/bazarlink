@@ -191,7 +191,7 @@ async def update_order(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Update order (Supplier Owner/Manager can accept/reject)"""
+    """Update order (Supplier Owner/Manager/Sales Rep can accept/reject and update)"""
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(
@@ -199,23 +199,42 @@ async def update_order(
             detail="Order not found"
         )
     
-    # Only suppliers can accept/reject orders
-    if order_in.status and order_in.status != order.status:
-        if current_user.role not in [UserRole.OWNER, UserRole.MANAGER]:
+    # Check if user has access to this order
+    if current_user.role == UserRole.CONSUMER:
+        if order.consumer_id != current_user.consumer_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only owners and managers can accept/reject orders"
+                detail="Access denied"
             )
-        
+        # Consumers cannot update orders (they can only delete pending ones)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Consumers cannot update orders"
+        )
+    elif current_user.role in [UserRole.OWNER, UserRole.MANAGER, UserRole.SALES_REPRESENTATIVE]:
+        if order.supplier_id != current_user.supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    # Supplier staff (Owner/Manager/Sales Rep) can accept/reject orders
+    if order_in.status and order_in.status != order.status:
         order.status = order_in.status
         if order_in.status == OrderStatus.ACCEPTED:
             order.accepted_at = datetime.utcnow()
         elif order_in.status == OrderStatus.COMPLETED:
             order.completed_at = datetime.utcnow()
-    else:
-        update_data = order_in.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(order, field, value)
+    
+    # Update other fields (notes, delivery info, etc.)
+    update_data = order_in.model_dump(exclude_unset=True, exclude={'status'})
+    for field, value in update_data.items():
+        setattr(order, field, value)
     
     db.commit()
     db.refresh(order)

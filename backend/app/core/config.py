@@ -29,6 +29,23 @@ class Settings(BaseSettings):
     SUPPORTED_LANGUAGES: Union[str, List[str]] = "kk,ru,en"
     DEFAULT_LANGUAGE: str = "en"
     
+    # File upload settings
+    UPLOAD_DIR: str = "uploads"
+    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
+    ALLOWED_FILE_TYPES: List[str] = [
+        # Images
+        "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
+        # Documents
+        "application/pdf", "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+        # Audio
+        "audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/aac", "audio/webm",
+        # Video (optional)
+        "video/mp4", "video/webm", "video/ogg"
+    ]
+    
     @field_validator("CORS_ORIGINS", "SUPPORTED_LANGUAGES", mode="after")
     @classmethod
     def parse_comma_separated(cls, v: Union[str, List[str]]) -> List[str]:

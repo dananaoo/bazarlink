@@ -8,7 +8,7 @@ from datetime import datetime
 
 class MessageBase(BaseModel):
     """Base message schema"""
-    content: str
+    content: Optional[str] = None  # Optional if attachment is present
     message_type: str = "text"
     attachment_url: Optional[str] = None
     attachment_type: Optional[str] = None

@@ -170,13 +170,22 @@ async def websocket_chat(
             
             if message_type == "message":
                 # Create new message
-                content = data.get("content")
-                if not content:
+                content = data.get("content") or ""
+                attachment_url = data.get("attachment_url")
+                
+                # Validate that either content or attachment_url is provided
+                if not content and not attachment_url:
                     await websocket.send_json({
                         "type": "error",
-                        "message": "Message content is required"
+                        "message": "Either content or attachment_url must be provided"
                     })
                     continue
+                
+                # Determine message type
+                if attachment_url:
+                    msg_type = "attachment"
+                else:
+                    msg_type = data.get("message_type", "text")
                 
                 # Determine receiver
                 receiver_id = None
@@ -198,8 +207,8 @@ async def websocket_chat(
                     receiver_id=receiver_id,
                     sales_rep_id=sales_rep_id,
                     content=content,
-                    message_type=data.get("message_type", "text"),
-                    attachment_url=data.get("attachment_url"),
+                    message_type=msg_type,
+                    attachment_url=attachment_url,
                     attachment_type=data.get("attachment_type"),
                     product_id=data.get("product_id"),
                     order_id=data.get("order_id")
