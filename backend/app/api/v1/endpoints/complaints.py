@@ -134,10 +134,9 @@ async def get_complaints(
             Complaint.level == ComplaintLevel.MANAGER
         )
     elif current_user.role == UserRole.OWNER:
-        # Owners see all complaints EXCEPT escalated ones (no escalated problems)
+        # Owners see all complaints for their supplier (including escalated)
         query = query.filter(
-            Complaint.supplier_id == current_user.supplier_id,
-            Complaint.level != ComplaintLevel.MANAGER  # Exclude escalated
+            Complaint.supplier_id == current_user.supplier_id
         )
     
     if supplier_id:
@@ -187,10 +186,11 @@ async def get_complaint(
                 detail="Access denied"
             )
     elif current_user.role == UserRole.OWNER:
-        if complaint.supplier_id != current_user.supplier_id or complaint.level == ComplaintLevel.MANAGER:
+        # Owners can view all complaints for their supplier (including escalated)
+        if complaint.supplier_id != current_user.supplier_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied - Owners cannot view escalated problems"
+                detail="Access denied"
             )
     
     return complaint
@@ -256,7 +256,7 @@ async def update_complaint(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Update complaint (Sales Rep or Manager)"""
+    """Update complaint (Sales Rep, Manager, or Owner)"""
     complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
     if not complaint:
         raise HTTPException(
@@ -277,10 +277,17 @@ async def update_complaint(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied"
             )
+    elif current_user.role == UserRole.OWNER:
+        # Owners can update all complaints for their supplier (including escalated)
+        if complaint.supplier_id != current_user.supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only sales representatives and managers can update complaints"
+            detail="Only sales representatives, managers, and owners can update complaints"
         )
     
     # Update fields
