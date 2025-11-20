@@ -222,3 +222,45 @@ async def update_order(
     
     return order
 
+
+@router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Delete order (Consumer can only delete their own orders if status is PENDING)"""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+    
+    # Only consumers can delete orders
+    if current_user.role != UserRole.CONSUMER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only consumers can delete orders"
+        )
+    
+    # Consumer can only delete their own orders
+    if order.consumer_id != current_user.consumer_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own orders"
+        )
+    
+    # Consumer can only delete orders that are not accepted yet
+    if order.status != OrderStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete order with status '{order.status}'. Only pending orders can be deleted."
+        )
+    
+    # Delete the order (cascade will delete order items)
+    db.delete(order)
+    db.commit()
+    
+    return None
+
