@@ -1,5 +1,5 @@
 """
-Incident endpoints for managers to handle escalated problems
+Incident endpoints for managers and owners to handle escalated problems
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -18,14 +18,14 @@ router = APIRouter()
 async def create_incident(
     incident_in: IncidentCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role(UserRole.MANAGER))
+    current_user = Depends(require_role(UserRole.MANAGER, UserRole.OWNER))
 ):
-    """Create an incident (Manager only)"""
+    """Create an incident (Manager and Owner only)"""
     # Get supplier_id from current user
     if not current_user.supplier_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Manager must be associated with a supplier"
+            detail="User must be associated with a supplier"
         )
     
     # If order_id provided, get consumer_id and supplier_id from order
@@ -64,12 +64,12 @@ async def get_incidents(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role(UserRole.MANAGER))
+    current_user = Depends(require_role(UserRole.MANAGER, UserRole.OWNER))
 ):
-    """Get incidents (Manager only - escalated problems)"""
+    """Get incidents (Manager and Owner only - escalated problems)"""
     query = db.query(Incident)
     
-    # Managers only see incidents for their supplier
+    # Managers and Owners only see incidents for their supplier
     if current_user.supplier_id:
         query = query.filter(Incident.supplier_id == current_user.supplier_id)
     
@@ -88,9 +88,9 @@ async def get_incidents(
 async def get_incident(
     incident_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role(UserRole.MANAGER))
+    current_user = Depends(require_role(UserRole.MANAGER, UserRole.OWNER))
 ):
-    """Get incident by ID (Manager only)"""
+    """Get incident by ID (Manager and Owner only)"""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(
@@ -113,9 +113,9 @@ async def update_incident(
     incident_id: int,
     incident_in: IncidentUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role(UserRole.MANAGER))
+    current_user = Depends(require_role(UserRole.MANAGER, UserRole.OWNER))
 ):
-    """Update incident (Manager only)"""
+    """Update incident (Manager and Owner only)"""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(
