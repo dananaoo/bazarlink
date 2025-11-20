@@ -194,11 +194,13 @@ async def websocket_chat(
                 if user.role == UserRole.CONSUMER:
                     # Consumer messages go to supplier (receiver_id can be None)
                     receiver_id = data.get("receiver_id")  # Optional: specific sales rep
-                elif user.role == UserRole.SALES_REPRESENTATIVE:
-                    # Sales rep messages go to consumer
+                elif user.role in [UserRole.SALES_REPRESENTATIVE, UserRole.MANAGER, UserRole.OWNER]:
+                    # Supplier staff messages go to consumer
                     consumer = db.query(Consumer).filter(Consumer.id == link.consumer_id).first()
                     receiver_id = consumer.user.id if consumer and consumer.user else None
-                    sales_rep_id = user.id
+                    # Only set sales_rep_id for sales representatives, not for managers/owners
+                    if user.role == UserRole.SALES_REPRESENTATIVE:
+                        sales_rep_id = user.id
                 
                 # Create message in database
                 db_message = Message(

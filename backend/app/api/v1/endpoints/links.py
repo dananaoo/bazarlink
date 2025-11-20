@@ -8,9 +8,38 @@ from datetime import datetime
 from app.core.dependencies import get_db, get_current_user
 from app.models.user import UserRole
 from app.models.link import Link, LinkStatus
+from app.models.complaint import Complaint, ComplaintStatus
 from app.schemas.link import Link as LinkSchema, LinkCreate, LinkUpdate
 
 router = APIRouter()
+
+
+def add_complaint_flags_to_links(links: List[Link], db: Session) -> List[dict]:
+    """Add has_active_complaint flag to links"""
+    result = []
+    for link in links:
+        # Check if link has active (unresolved) complaints
+        active_complaints = db.query(Complaint).filter(
+            Complaint.link_id == link.id,
+            Complaint.status != ComplaintStatus.RESOLVED
+        ).count()
+        
+        link_dict = {
+            "id": link.id,
+            "supplier_id": link.supplier_id,
+            "consumer_id": link.consumer_id,
+            "status": link.status,
+            "requested_by_consumer": link.requested_by_consumer,
+            "request_message": link.request_message,
+            "assigned_sales_rep_id": link.assigned_sales_rep_id,
+            "requested_at": link.requested_at,
+            "responded_at": link.responded_at,
+            "created_at": link.created_at,
+            "updated_at": link.updated_at,
+            "has_active_complaint": active_complaints > 0
+        }
+        result.append(link_dict)
+    return result
 
 
 @router.post("/", response_model=LinkSchema, status_code=status.HTTP_201_CREATED)
@@ -67,7 +96,9 @@ async def get_links(
         query = query.filter(Link.status == status)
     
     links = query.offset(skip).limit(limit).all()
-    return links
+    
+    # Add has_active_complaint flag
+    return add_complaint_flags_to_links(links, db)
 
 
 @router.get("/{link_id}", response_model=LinkSchema)
@@ -83,7 +114,9 @@ async def get_link(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Link not found"
         )
-    return link
+    
+    # Add has_active_complaint flag
+    return add_complaint_flags_to_links([link], db)[0]
 
 
 @router.put("/{link_id}", response_model=LinkSchema)
@@ -241,7 +274,8 @@ async def get_my_chats(
         Link.status == LinkStatus.ACCEPTED
     ).offset(skip).limit(limit).all()
     
-    return links
+    # Add has_active_complaint flag
+    return add_complaint_flags_to_links(links, db)
 
 
 @router.get("/chats/other", response_model=List[LinkSchema])
@@ -272,7 +306,8 @@ async def get_other_chats(
         (Link.assigned_sales_rep_id != current_user.id) | (Link.assigned_sales_rep_id.is_(None))
     ).offset(skip).limit(limit).all()
     
-    return links
+    # Add has_active_complaint flag
+    return add_complaint_flags_to_links(links, db)
 
 
 @router.get("/chats/consumer", response_model=List[LinkSchema])
@@ -301,5 +336,6 @@ async def get_consumer_chats(
         Link.status == LinkStatus.ACCEPTED
     ).offset(skip).limit(limit).all()
     
-    return links
+    # Add has_active_complaint flag
+    return add_complaint_flags_to_links(links, db)
 

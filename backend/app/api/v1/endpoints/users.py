@@ -16,15 +16,42 @@ router = APIRouter()
 async def create_user(
     user_in: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER))
+    current_user: User = Depends(get_current_user)
 ):
-    """Create a new user (Owner only) - can only create Managers and Sales Reps"""
-    # Owner can only create Managers and Sales Representatives
-    if user_in.role not in [UserRole.MANAGER, UserRole.SALES_REPRESENTATIVE]:
+    """Create a new user (Owner or Manager)
+    
+    - Owner can create Managers and Sales Representatives
+    - Manager can create only Sales Representatives
+    """
+    # Only Owner and Manager can create users
+    if current_user.role not in [UserRole.OWNER, UserRole.MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Owners can only create Managers and Sales Representatives"
+            detail="Only owners and managers can create users"
         )
+    
+    # Verify user has a supplier
+    if not current_user.supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must be associated with a supplier to create users"
+        )
+    
+    # Role-based restrictions on what can be created
+    if current_user.role == UserRole.OWNER:
+        # Owner can create Managers and Sales Representatives
+        if user_in.role not in [UserRole.MANAGER, UserRole.SALES_REPRESENTATIVE]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Owners can only create Managers and Sales Representatives"
+            )
+    elif current_user.role == UserRole.MANAGER:
+        # Manager can only create Sales Representatives
+        if user_in.role != UserRole.SALES_REPRESENTATIVE:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Managers can only create Sales Representatives"
+            )
     
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_in.email).first()
@@ -32,13 +59,6 @@ async def create_user(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email already exists"
-        )
-    
-    # Verify owner has a supplier
-    if not current_user.supplier_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Owner must be associated with a supplier"
         )
     
     # Create new user

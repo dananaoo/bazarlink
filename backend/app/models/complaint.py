@@ -31,6 +31,7 @@ class Complaint(Base):
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
     consumer_id = Column(Integer, ForeignKey("consumers.id"), nullable=False, index=True)
     supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False, index=True)
+    link_id = Column(Integer, ForeignKey("links.id"), nullable=False, index=True)  # Link to chat for this complaint
     
     # Complaint details
     title = Column(String, nullable=False)
@@ -53,6 +54,7 @@ class Complaint(Base):
     
     # Relationships
     order = relationship("Order", back_populates="complaints")
+    link = relationship("Link")
     escalated_to = relationship("User", foreign_keys=[escalated_to_user_id])
     escalated_by = relationship("User", foreign_keys=[escalated_by_user_id])
     resolved_by = relationship("User", foreign_keys=[resolved_by_user_id])

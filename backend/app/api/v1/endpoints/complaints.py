@@ -21,7 +21,11 @@ async def create_complaint(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Create a complaint (Consumer only)"""
+    """Create a complaint (Consumer only)
+    
+    Automatically creates first message in the chat with complaint details.
+    Requires an ACCEPTED link (not BLOCKED) between consumer and supplier.
+    """
     if current_user.role != UserRole.CONSUMER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -42,16 +46,58 @@ async def create_complaint(
             detail="You can only create complaints for your own orders"
         )
     
+    # Check if ACCEPTED link exists between consumer and supplier
+    link = db.query(Link).filter(
+        Link.consumer_id == order.consumer_id,
+        Link.supplier_id == order.supplier_id,
+        Link.status == LinkStatus.ACCEPTED
+    ).first()
+    
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must have an accepted link with the supplier to create a complaint"
+        )
+    
+    # Check that link is not BLOCKED
+    if link.status == LinkStatus.BLOCKED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot create complaint: your link with this supplier is blocked"
+        )
+    
+    # Create complaint
     db_complaint = Complaint(
         order_id=complaint_in.order_id,
         consumer_id=order.consumer_id,
         supplier_id=order.supplier_id,
+        link_id=link.id,
         title=complaint_in.title,
         description=complaint_in.description,
         status=ComplaintStatus.OPEN,
         level=ComplaintLevel.SALES
     )
     db.add(db_complaint)
+    db.flush()  # Flush to get complaint.id
+    
+    # Create first message in chat with complaint details
+    from app.models.message import Message
+    complaint_message = f"Жалоба: {complaint_in.title}\n\n{complaint_in.description}"
+    
+    # Find consumer's user to set as sender
+    from app.models.consumer import Consumer
+    consumer = db.query(Consumer).filter(Consumer.id == order.consumer_id).first()
+    sender_id = consumer.user.id if consumer and consumer.user else current_user.id
+    
+    db_message = Message(
+        link_id=link.id,
+        sender_id=sender_id,
+        receiver_id=None,  # Message to supplier (general)
+        content=complaint_message,
+        message_type="text",
+        order_id=order.id
+    )
+    db.add(db_message)
     db.commit()
     db.refresh(db_complaint)
     

@@ -37,6 +37,7 @@ class ComplaintInDB(ComplaintBase):
     id: int
     consumer_id: int
     supplier_id: int
+    link_id: int  # Link to chat for this complaint
     status: ComplaintStatus
     level: ComplaintLevel
     escalated_to_user_id: Optional[int] = None

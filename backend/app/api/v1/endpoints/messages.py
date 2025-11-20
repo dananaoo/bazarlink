@@ -20,7 +20,7 @@ async def create_message(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Create a new message (Consumer or Sales Rep)"""
+    """Create a new message (Consumer, Sales Rep, Manager, or Owner)"""
     # Verify link exists and is accepted
     link = db.query(Link).filter(Link.id == message_in.link_id).first()
     if not link:
@@ -43,7 +43,7 @@ async def create_message(
             )
         # Consumer messages go to supplier (receiver_id can be None for general supplier chat)
         receiver_id = message_in.receiver_id  # Optional: specific sales rep, or None for general
-    elif current_user.role == UserRole.SALES_REPRESENTATIVE:
+    elif current_user.role in [UserRole.SALES_REPRESENTATIVE, UserRole.MANAGER, UserRole.OWNER]:
         if link.supplier_id != current_user.supplier_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -54,14 +54,14 @@ async def create_message(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Link must be accepted before sending messages"
             )
-        # Sales rep messages go to consumer - find consumer's user
+        # Supplier staff messages go to consumer - find consumer's user
         from app.models.consumer import Consumer
         consumer = db.query(Consumer).filter(Consumer.id == link.consumer_id).first()
         receiver_id = consumer.user.id if consumer and consumer.user else None
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only consumers and sales representatives can send messages"
+            detail="Only consumers and supplier staff can send messages"
         )
     
     # Validate that either content or attachment_url is provided
@@ -77,7 +77,7 @@ async def create_message(
     else:
         message_type = message_in.message_type or "text"
     
-    # Determine sales_rep_id (only for sales rep messages)
+    # Determine sales_rep_id (only for sales rep messages, not for managers/owners)
     sales_rep_id = None
     if current_user.role == UserRole.SALES_REPRESENTATIVE:
         sales_rep_id = current_user.id

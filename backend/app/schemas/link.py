@@ -35,6 +35,7 @@ class LinkInDB(LinkBase):
     responded_at: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    has_active_complaint: Optional[bool] = None  # Computed field - true if has unresolved complaint
 
     class Config:
         from_attributes = True
