@@ -189,6 +189,19 @@ alembic downgrade -1
 
 For detailed information, see [ALEMBIC_GUIDE.md](ALEMBIC_GUIDE.md).
 
+### Archive Schema Setup
+
+The archive schema is created automatically when you run migrations:
+
+```bash
+alembic upgrade head
+```
+
+This will:
+- Create the `archive` schema
+- Create archive tables for orders, order_items, complaints, incidents, messages, and links
+- Create PostgreSQL functions for archiving
+
 ## API Endpoints
 
 ### Authentication
@@ -300,6 +313,86 @@ See `AUTH_GUIDE.md` for detailed authentication instructions.
 - Incident
 - Message
 
+## Data Retention & Archival Policy
+
+The platform implements a data retention and archival system to comply with data retention requirements while maintaining database performance.
+
+### Architecture
+
+- **Active Data (public schema)**: Current, active data (1-2 years)
+- **Archive Data (archive schema)**: Historical, archived data (3-5 years, read-only)
+- **Deletion**: Complete removal after 7-10 years (configurable)
+
+### What Gets Archived
+
+The following data types are automatically archived based on retention policies:
+
+1. **Orders**: Completed, cancelled, or rejected orders older than X years
+2. **Complaints**: Resolved complaints older than X years
+3. **Incidents**: Resolved incidents older than X years
+4. **Messages**: Messages older than X years (archived by link)
+5. **Links**: Removed or blocked links older than X years
+
+### Archival Process
+
+#### Manual Archival
+
+Use the provided script to archive old data:
+
+```bash
+# Dry run (see what would be archived without actually archiving)
+python scripts/archive_old_data.py --years=3 --dry-run
+
+# Archive all data older than 3 years
+python scripts/archive_old_data.py --years=3
+
+# Archive only specific type
+python scripts/archive_old_data.py --years=3 --type=orders
+python scripts/archive_old_data.py --years=3 --type=complaints
+```
+
+#### Automated Archival
+
+Set up a cron job or scheduled task to run automatically:
+
+```bash
+# Example: Run monthly on 1st at 2 AM
+0 2 1 * * cd /path/to/backend && python scripts/archive_old_data.py --years=3
+```
+
+### Database Functions
+
+The system provides PostgreSQL functions for archiving:
+
+- `archive_order(order_id)` - Archives an order and its items
+- `archive_complaint(complaint_id)` - Archives a complaint
+- `archive_incident(incident_id)` - Archives an incident
+- `archive_messages_by_link(link_id)` - Archives all messages for a link
+- `archive_link(link_id)` - Archives a link and its messages
+
+### Accessing Archived Data
+
+Archived data can be queried directly from the `archive` schema:
+
+```sql
+-- View archived orders
+SELECT * FROM archive.orders WHERE supplier_id = 1;
+
+-- View archived complaints
+SELECT * FROM archive.complaints WHERE status = 'RESOLVED';
+```
+
+### Important Notes
+
+- **No Foreign Keys**: Archive tables don't have foreign key constraints to avoid dependency issues
+- **Read-Only**: Archived data should be treated as read-only
+- **Backup**: Archive schema should be included in database backups
+- **Retention Period**: Default is 3 years, but can be configured per organization
+- **Cascade**: When archiving orders, order_items are automatically archived
+- **Cascade**: When archiving links, messages are automatically archived
+
+For detailed information, see [ARCHIVE_GUIDE.md](ARCHIVE_GUIDE.md).
+
 ## Development Notes
 
 - Follow PEP 8 style guide
@@ -309,13 +402,19 @@ See `AUTH_GUIDE.md` for detailed authentication instructions.
 - Use Pydantic schemas for request/response validation
 - Follow RESTful API conventions
 
+## Additional Documentation
+
+- [ALEMBIC_GUIDE.md](ALEMBIC_GUIDE.md) - Database migration guide
+- [ARCHIVE_GUIDE.md](ARCHIVE_GUIDE.md) - Data archival system guide
+- [AUTH_GUIDE.md](AUTH_GUIDE.md) - Authentication guide
+- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Complete API documentation
+- [DATABASE_SETUP.md](DATABASE_SETUP.md) - Database setup instructions
+
 ## Next Steps
 
-- Set up Alembic for database migrations
 - Add comprehensive error handling
-- Implement complaint and incident endpoints
-- Add message/chat endpoints
 - Add unit and integration tests
 - Implement rate limiting
 - Add logging configuration
+- Set up monitoring and alerting
 
