@@ -46,10 +46,8 @@ class Product(Base):
     is_available = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
     
-    # Delivery options
-    delivery_available = Column(Boolean, default=True)
-    pickup_available = Column(Boolean, default=True)
-    lead_time_days = Column(Integer, default=1)  # Days until delivery
+    # Product-specific lead time (can override supplier default)
+    lead_time_days = Column(Integer, nullable=True)  # Days until delivery (optional, uses supplier default if None)
     
     # Image
     image_url = Column(String, nullable=True)  # URL to product image

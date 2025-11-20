@@ -20,9 +20,7 @@ class ProductBase(BaseModel):
     stock_quantity: Decimal = Decimal("0")
     unit: ProductUnit = ProductUnit.KILOGRAM
     min_order_quantity: Decimal = Decimal("1")
-    delivery_available: bool = True
-    pickup_available: bool = True
-    lead_time_days: int = 1
+    lead_time_days: Optional[int] = None  # Optional, uses supplier default if None
     image_url: Optional[str] = None
 
 
@@ -44,8 +42,6 @@ class ProductUpdate(BaseModel):
     min_order_quantity: Optional[Decimal] = None
     is_available: Optional[bool] = None
     is_active: Optional[bool] = None
-    delivery_available: Optional[bool] = None
-    pickup_available: Optional[bool] = None
     lead_time_days: Optional[int] = None
     image_url: Optional[str] = None
 

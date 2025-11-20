@@ -36,6 +36,11 @@ class Supplier(Base):
     description = Column(Text, nullable=True)
     website = Column(String, nullable=True)
     
+    # Delivery options (company-level)
+    delivery_available = Column(Boolean, default=True)  # Company offers delivery
+    pickup_available = Column(Boolean, default=True)  # Company offers pickup
+    lead_time_days = Column(Integer, default=1)  # Default days until delivery
+    
     # Settings
     is_active = Column(Boolean, default=True)
     

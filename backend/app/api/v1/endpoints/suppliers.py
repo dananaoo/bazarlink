@@ -91,6 +91,13 @@ async def update_supplier(
             detail="Supplier not found"
         )
     
+    # Verify user has access to this supplier
+    if current_user.supplier_id != supplier_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only update your own supplier"
+        )
+    
     update_data = supplier_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(supplier, field, value)

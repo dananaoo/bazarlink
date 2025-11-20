@@ -19,6 +19,9 @@ class SupplierBase(BaseModel):
     country: str = "KZ"
     description: Optional[str] = None
     website: Optional[str] = None
+    delivery_available: bool = True  # Company offers delivery
+    pickup_available: bool = True  # Company offers pickup
+    lead_time_days: int = 1  # Default days until delivery
 
 
 class SupplierCreate(SupplierBase):
@@ -36,6 +39,9 @@ class SupplierUpdate(BaseModel):
     city: Optional[str] = None
     description: Optional[str] = None
     website: Optional[str] = None
+    delivery_available: Optional[bool] = None
+    pickup_available: Optional[bool] = None
+    lead_time_days: Optional[int] = None
     is_active: Optional[bool] = None
 
 
@@ -46,6 +52,7 @@ class SupplierInDB(SupplierBase):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    # delivery_available, pickup_available, lead_time_days inherited from SupplierBase
 
     class Config:
         from_attributes = True
