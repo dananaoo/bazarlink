@@ -289,7 +289,8 @@ async def transfer_ownership(
     This allows the current owner to transfer their ownership to a Manager.
     After transfer:
     - The Manager becomes the new Owner
-    - The current owner becomes a Manager (or can be deleted)
+    - The old owner's supplier_id is set to null
+    - The old owner's account is deleted
     """
     # Verify current owner has a supplier
     if not current_user.supplier_id:
@@ -330,10 +331,12 @@ async def transfer_ownership(
     # Transfer ownership: Make Manager the new Owner
     new_owner.role = UserRole.OWNER
     
-    # Optionally: Convert current owner to Manager (or they can delete themselves)
-    # For now, we'll keep the current owner as Owner too (so there can be multiple owners)
-    # If you want to demote the current owner, uncomment the next line:
-    # current_user.role = UserRole.MANAGER
+    # Remove old owner from supplier and delete their account
+    # Step 1: Set supplier_id to null
+    current_user.supplier_id = None
+    
+    # Step 2: Delete the old owner's account
+    db.delete(current_user)
     
     db.commit()
     db.refresh(new_owner)
