@@ -2,6 +2,17 @@
 
 FastAPI backend for the B2B Supplier Consumer Platform.
 
+- Mobile app github:
+   https://github.com/DastanNK/bazarlink-mobile
+- Web app github:
+   https://github.com/kozhakhmetov004/bazarlink-web
+- Backend github:
+   https://github.com/dananaoo/bazarlink
+- Demo video of apps:
+   https://drive.google.com/file/d/1GOljAgxMX_Me6lNBkOaFN5lr8y8jsM0d/view?usp=sharing
+- Presentation:
+https://drive.google.com/file/d/1L0tucaKs42mOAYTrk6b6b5LbcM_L6HMH/view?usp=sharing
+
 ## Technology Stack
 
 - **Framework**: FastAPI
